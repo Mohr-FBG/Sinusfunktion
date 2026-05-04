@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Riesenrad – Sinus & Kosinus am Einheitskreis</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  :root {
+    --bg: #f0f4f8; --panel: #ffffff;
+    --shadow: 0 4px 24px rgba(0,0,0,0.10);
+    --axis: #334155; --grid: #cbd5e1;
+    --text: #1e293b; --text2: #64748b;
+    --btn-bg: #1e293b; --btn-text: #f8fafc;
+    --btn-active: #2563eb; --radius-track: #dbeafe;
+    --border: #e2e8f0; --sin-color: #e05a2b;
+    --cos-color: #2563eb; --green: #16a34a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: var(--bg); color: var(--text);
+    min-height: 100vh; padding: 12px; overflow-x: hidden;
+  }
+  h1 {
+    text-align: center; font-size: 1.35rem; font-weight: 800;
+    color: var(--text); margin-bottom: 10px; letter-spacing: -0.5px;
+  }
+  .main-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 10px; max-width: 1100px; margin: 0 auto;
+  }
+  .panel {
+    background: var(--panel); border-radius: 16px;
+    box-shadow: var(--shadow); padding: 10px;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .panel-title {
+    font-size: 0.75rem; font-weight: 700; color: var(--text2);
+    text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;
+  }
+  canvas { display: block; border-radius: 10px; }
+  .controls {
+    max-width: 1100px; margin: 10px auto 0;
+    background: var(--panel); border-radius: 16px;
+    box-shadow: var(--shadow); padding: 12px 16px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .ctrl-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .ctrl-label {
+    font-size: 0.72rem; font-weight: 700; color: var(--text2);
+    text-transform: uppercase; letter-spacing: 0.8px;
+    white-space: nowrap; min-width: 70px;
+  }
+  .btn {
+    font-family: 'Nunito', sans-serif; font-size: 0.78rem; font-weight: 700;
+    padding: 7px 14px; border-radius: 8px; border: 2px solid transparent;
+    background: var(--btn-bg); color: var(--btn-text);
+    cursor: pointer; transition: all 0.18s; white-space: nowrap;
+  }
+  .btn:hover { opacity: 0.85; transform: translateY(-1px); }
+  .btn.active       { background: var(--btn-active); color:#fff; border-color: var(--btn-active); }
+  .btn.sin-active   { background: var(--sin-color);  color:#fff; border-color: var(--sin-color); }
+  .btn.cos-active   { background: var(--cos-color);  color:#fff; border-color: var(--cos-color); }
+  .btn.green-active { background: var(--green);      color:#fff; border-color: var(--green); }
+  .slider-row { display: flex; align-items: center; gap: 10px; flex: 1; }
+  input[type=range] {
+    -webkit-appearance: none; height: 6px; border-radius: 3px;
+    background: var(--radius-track); outline: none; flex: 1; min-width: 80px;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%;
+    background: var(--btn-active); cursor: pointer; box-shadow: 0 2px 6px rgba(37,99,235,0.3);
+  }
+  .val-badge {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; font-weight: 600;
+    background: var(--bg); border: 1.5px solid var(--border); border-radius: 6px;
+    padding: 3px 8px; min-width: 58px; text-align: center; color: var(--text);
+  }
+  .info-badge {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; font-weight: 600;
+    padding: 5px 12px; border-radius: 8px; border: 1.5px solid var(--border); background: var(--bg);
+  }
+  .divider { width: 100%; height: 1px; background: var(--border); }
+  @media (max-width: 700px) {
+    .main-grid { grid-template-columns: 1fr; }
+    h1 { font-size: 1.1rem; }
+  }
+</style>
+</head>
+<body>
+
+<h1>🎡 Riesenrad – Sinus & Kosinus am Einheitskreis</h1>
+
+<div class="main-grid">
+  <div class="panel">
+    <div class="panel-title" id="left-title">Riesenrad</div>
+    <canvas id="wheelCanvas"></canvas>
+  </div>
+  <div class="panel">
+    <div class="panel-title">Koordinatensystem</div>
+    <canvas id="graphCanvas"></canvas>
+  </div>
+</div>
+
+<div class="controls">
+  <div class="ctrl-row">
+    <span class="ctrl-label">Animation</span>
+    <button class="btn active" id="btnPlay">⏸ Pause</button>
+    <button class="btn" id="btnReset">↺ Reset</button>
+    <div style="width:1px;height:28px;background:var(--border);margin:0 4px"></div>
+    <span class="ctrl-label">Funktion</span>
+    <button class="btn sin-active" id="btnSin">sin(α)</button>
+    <button class="btn" id="btnCos">cos(α)</button>
+    <div style="width:1px;height:28px;background:var(--border);margin:0 4px"></div>
+    <span class="ctrl-label">x-Achse</span>
+    <button class="btn active" id="btnDeg">Gradmaß °</button>
+    <button class="btn" id="btnRad">Bogenmaß rad</button>
+  </div>
+  <div class="divider"></div>
+  <div class="ctrl-row">
+    <span class="ctrl-label">Ansicht</span>
+    <button class="btn" id="btnAbstract">Abstrahieren</button>
+    <button class="btn" id="btnHideOthers">Andere Gondeln</button>
+    <button class="btn" id="btnTrace">Spur anzeigen</button>
+    <button class="btn" id="btnTriangle">Dreieck</button>
+    <button class="btn green-active" id="btnHelper">Hilfslinie aus</button>
+  </div>
+  <div class="divider"></div>
+  <div class="ctrl-row">
+    <span class="ctrl-label">Geschw.</span>
+    <div class="slider-row">
+      <input type="range" id="speedSlider" min="0.2" max="1" step="0.1" value="0.5">
+      <span class="val-badge" id="speedVal">1.0×</span>
+    </div>
+    <div style="width:1px;height:28px;background:var(--border);margin:0 4px"></div>
+    <span class="ctrl-label">Radius r</span>
+    <div class="slider-row">
+      <input type="range" id="radiusSlider" min="0.5" max="1.5" step="0.1" value="1">
+      <span class="val-badge" id="radiusVal">r = 1</span>
+    </div>
+  </div>
+  <div class="divider"></div>
+  <div class="ctrl-row">
+    <span class="ctrl-label">Aktuell</span>
+    <span class="info-badge" id="infoAngle">α = 0°</span>
+    <span class="info-badge" id="infoRad">= 0 rad</span>
+    <span class="info-badge" id="infoVal">sin(α) = 0.000</span>
+  </div>
+</div>
+
+<script>
+// ─── State ────────────────────────────────────────────────────────────────────
+const state = {
+  angle: 0,          // degrees, CCW from positive x-axis (math convention)
+  playing: true,
+  speed: 1.0,
+  radius: 1,         // = r in the formulas
+  useDegrees: true,
+  showAbstract: false,
+  hideOthers: false,
+  showTrace: false,
+  showTriangle: false,
+  showHelper: true,
+  useSin: true,
+  tracePoints: [],
+  lastTime: null,
+};
+
+// ─── Canvas setup ─────────────────────────────────────────────────────────────
+const wCanvas = document.getElementById('wheelCanvas');
+const gCanvas = document.getElementById('graphCanvas');
+const wCtx = wCanvas.getContext('2d');
+const gCtx = gCanvas.getContext('2d');
+
+function resizeCanvases() {
+  const panel = wCanvas.parentElement;
+  const w = Math.max(panel.clientWidth - 20, 200);
+  const h = Math.min(w * 0.88, 355);
+  wCanvas.width = w; wCanvas.height = h;
+  gCanvas.width = w; gCanvas.height = h;
+  draw();
+}
+
+// ─── Color palette ────────────────────────────────────────────────────────────
+const C = {
+  axis: '#334155', grid: '#cbd5e1',
+  gondola: '#f59e0b', gondolaSel: '#e05a2b',
+  wheel: '#92400e', spoke: '#b45309', frame: '#475569',
+  sin: '#e05a2b',   // orange-red
+  cos: '#2563eb',   // blue
+  helper: '#16a34a',
+  triStroke: '#b45309',
+  triFill: 'rgba(234,179,8,0.18)',
+  arc: '#7c3aed',             // purple for radian arc
+  angleWedge: 'rgba(234,179,8,0.35)',
+  spokeSelected: '#e05a2b',
+};
+
+// ─── Geometry ─────────────────────────────────────────────────────────────────
+const NUM_GONDOLAS = 12;
+
+function getWheelCenter(w, h) {
+  return { x: w * 0.44, y: h * 0.50 };
+}
+function getWheelPixelR(h) {
+  // Base size scaled by state.radius so wheel grows
+  return h * 0.30 * state.radius;
+}
+
+// Math angle (CCW from +x) in RADIANS for gondola i
+// state.angle = 0 → gondola 0 is at 3 o'clock (positive x).
+// Increasing state.angle rotates CCW.
+function gondolaMathAngleRad(i) {
+  return (state.angle + i * (360 / NUM_GONDOLAS)) * Math.PI / 180;
+}
+
+// Canvas coordinates from math angle
+// Canvas y is flipped → subtract y instead of add
+function mathAngleToCanvas(cx, cy, R, mathAngleRad) {
+  return {
+    x: cx + Math.cos(mathAngleRad) * R,
+    y: cy - Math.sin(mathAngleRad) * R,
+  };
+}
+
+// ─── Arrow head helper ────────────────────────────────────────────────────────
+function arrowHead(ctx, x, y, angle) {
+  ctx.save();
+  ctx.translate(x, y); ctx.rotate(angle);
+  ctx.beginPath();
+  ctx.moveTo(0,0); ctx.lineTo(-7,4); ctx.lineTo(-7,-4);
+  ctx.closePath(); ctx.fillStyle = C.axis; ctx.fill();
+  ctx.restore();
+}
+
+// ─── Coordinate axes (shared helper) ─────────────────────────────────────────
+function drawCoordAxes(ctx, cx, cy, R) {
+  const axisExt = R * 1.25;
+  const r = state.radius;
+  const fontSize = Math.max(9, R * 0.115);
+
+  // Axes lines
+  ctx.strokeStyle = C.axis; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(cx - axisExt, cy); ctx.lineTo(cx + axisExt, cy); ctx.stroke();
+  arrowHead(ctx, cx + axisExt, cy, 0);
+  ctx.beginPath(); ctx.moveTo(cx, cy + axisExt); ctx.lineTo(cx, cy - axisExt); ctx.stroke();
+  arrowHead(ctx, cx, cy - axisExt, -Math.PI / 2);
+
+  // Ticks and labels at ±r (or ±1 for unit circle)
+  ctx.font = `${fontSize}px JetBrains Mono`;
+  ctx.fillStyle = C.axis; ctx.lineWidth = 1.2;
+  const tickPairs = [
+    { pix: R,  lbl: r === 1 ? '1' : r.toFixed(1) },
+    { pix: -R, lbl: r === 1 ? '-1' : '-' + r.toFixed(1) },
+  ];
+  tickPairs.forEach(({ pix, lbl }) => {
+    // x-axis tick
+    ctx.beginPath(); ctx.moveTo(cx + pix, cy - 4); ctx.lineTo(cx + pix, cy + 4); ctx.stroke();
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    ctx.fillText(lbl, cx + pix, cy + 6);
+    // y-axis tick (note: pix positive → up on canvas, so cy - pix)
+    ctx.beginPath(); ctx.moveTo(cx - 4, cy - pix); ctx.lineTo(cx + 4, cy - pix); ctx.stroke();
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    ctx.fillText(lbl, cx - 6, cy - pix);
+  });
+
+  // Origin
+  ctx.textAlign = 'right'; ctx.textBaseline = 'top';
+  ctx.fillText('0', cx - 4, cy + 4);
+
+  // Axis name labels
+  ctx.font = `bold ${fontSize + 1}px Nunito`;
+  ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  ctx.fillText('x', cx + axisExt + 5, cy);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+  ctx.fillText('y', cx, cy - axisExt - 3);
+}
+
+// ─── Angle / arc annotation (shared between ferris wheel + abstract) ──────────
+// canvasCCW = true means canvas arc goes CCW (use anticlockwise=true)
+function drawAngleAnnotation(ctx, cx, cy, R, angleDeg) {
+  const angleRad = angleDeg * Math.PI / 180;
+  if (Math.abs(angleDeg % 360) < 0.1) return; // nothing to draw at 0
+
+  if (state.useDegrees) {
+    // Filled wedge inside wheel, from +x axis CCW
+    const innerR = R * 0.28;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    // Canvas arc: angle 0 = right, positive = CW. We want CCW so use anticlockwise=true
+    ctx.arc(cx, cy, innerR, 0, -angleRad, true);
+    ctx.closePath();
+    ctx.fillStyle = C.angleWedge; ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, innerR, 0, -angleRad, true);
+    ctx.closePath();
+    ctx.strokeStyle = '#ca8a04'; ctx.lineWidth = 1.5; ctx.stroke();
+
+    // Label in middle of wedge
+    const midA = angleRad / 2;
+    const lx = cx + Math.cos(midA) * innerR * 1.45;
+    const ly = cy - Math.sin(midA) * innerR * 1.45;
+    ctx.font = `bold ${Math.max(10, R * 0.11)}px Nunito`;
+    ctx.fillStyle = '#92400e';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(Math.round(angleDeg) + '°', lx, ly);
+
+  } else {
+    // Arc ON the circle circumference (radius = R)
+    ctx.beginPath();
+    // Start at 0 (right), go CCW (anticlockwise=true) by angleRad
+    ctx.arc(cx, cy, R, 0, -angleRad, true);
+    ctx.strokeStyle = C.arc;
+    ctx.lineWidth = Math.max(5, R * 0.06);
+    ctx.lineCap = 'round'; ctx.stroke(); ctx.lineCap = 'butt';
+
+    // Label outside the circle near midpoint of arc
+    const midA = angleRad / 2;
+    const lx = cx + Math.cos(midA) * (R * 1.18);
+    const ly = cy - Math.sin(midA) * (R * 1.18);
+    ctx.font = `bold ${Math.max(9, R * 0.095)}px JetBrains Mono`;
+    ctx.fillStyle = C.arc;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(radLabel(angleRad), lx, ly);
+  }
+}
+
+// ─── Draw Ferris Wheel ────────────────────────────────────────────────────────
+function drawFerrisWheel(ctx, w, h) {
+  const { x: cx, y: cy } = getWheelCenter(w, h);
+  const R = getWheelPixelR(h);
+  const angleDeg = state.angle % 360;
+  const selMathA = gondolaMathAngleRad(0);
+  const gp = mathAngleToCanvas(cx, cy, R, selMathA);
+
+  // ── Background ──
+  const sky = ctx.createLinearGradient(0, 0, 0, h * 0.88);
+  sky.addColorStop(0, '#bfdbfe'); sky.addColorStop(1, '#e0f2fe');
+  ctx.fillStyle = sky; ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = '#d4a96a'; ctx.fillRect(0, h * 0.88, w, h * 0.12);
+  ctx.fillStyle = '#c8995a'; ctx.fillRect(0, h * 0.88, w, 3);
+
+  // ── Coordinate system ──
+  drawCoordAxes(ctx, cx, cy, R);
+
+  // ── Support legs ──
+  const baseY = h * 0.88;
+  ctx.strokeStyle = C.frame; ctx.lineWidth = Math.max(2, R * 0.04); ctx.lineCap = 'round';
+  const legSpread = R * 0.55;
+  const frameBase = cy + R * 0.18;
+  [cx - legSpread, cx + legSpread, cx - legSpread * 0.4, cx + legSpread * 0.4].forEach(lx => {
+    ctx.beginPath(); ctx.moveTo(cx, frameBase); ctx.lineTo(lx, baseY); ctx.stroke();
+  });
+  ctx.beginPath(); ctx.moveTo(cx - legSpread, baseY - R * 0.08); ctx.lineTo(cx + legSpread, baseY - R * 0.08); ctx.stroke();
+
+  // ── Outer ring ──
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2);
+  ctx.strokeStyle = C.wheel; ctx.lineWidth = Math.max(3, R * 0.045); ctx.stroke();
+
+  // ── Inner ring ──
+  ctx.beginPath(); ctx.arc(cx, cy, R * 0.12, 0, Math.PI * 2);
+  ctx.strokeStyle = C.frame; ctx.lineWidth = Math.max(2, R * 0.03); ctx.stroke();
+
+  // ── Normal spokes ──
+  for (let i = 1; i < NUM_GONDOLAS; i++) {
+    const a = gondolaMathAngleRad(i);
+    const gpi = mathAngleToCanvas(cx, cy, R, a);
+    const ipi = mathAngleToCanvas(cx, cy, R * 0.12, a);
+    ctx.beginPath(); ctx.moveTo(ipi.x, ipi.y); ctx.lineTo(gpi.x, gpi.y);
+    ctx.strokeStyle = C.spoke; ctx.lineWidth = Math.max(1, R * 0.018); ctx.stroke();
+  }
+
+  // ── Triangle fill (drawn before legs so legs are on top) ──
+  if (state.showTriangle) {
+    ctx.beginPath();
+    ctx.moveTo(cx, cy); ctx.lineTo(gp.x, cy); ctx.lineTo(gp.x, gp.y);
+    ctx.closePath();
+    ctx.fillStyle = C.triFill; ctx.fill();
+    // Outline of triangle (legs colored separately below)
+    ctx.beginPath();
+    ctx.moveTo(cx, cy); ctx.lineTo(gp.x, cy); ctx.lineTo(gp.x, gp.y);
+    ctx.closePath();
+    ctx.strokeStyle = C.triStroke; ctx.lineWidth = 1.2; ctx.stroke();
+
+    // Right-angle marker at (gp.x, cy)
+    const sq = Math.max(5, R * 0.065);
+    const xDir = (gp.x >= cx) ? -1 : 1;
+    const yDir = (gp.y <= cy) ? 1 : -1; // going upward or downward?
+    ctx.beginPath();
+    ctx.moveTo(gp.x + xDir * sq, cy);
+    ctx.lineTo(gp.x + xDir * sq, cy + yDir * sq);
+    ctx.lineTo(gp.x, cy + yDir * sq);
+    ctx.strokeStyle = C.triStroke; ctx.lineWidth = 1.4; ctx.stroke();
+  }
+
+  // ── Colored legs ──
+  // sin = vertical leg (orange-red), cos = horizontal leg (blue)
+  const showLegs = state.showTriangle || state.showHelper;
+  if (showLegs) {
+    const sinLineW = state.useSin ? Math.max(3, R * 0.038) : 2;
+    const cosLineW = state.useSin ? 2 : Math.max(3, R * 0.038);
+    const sinAlpha = state.useSin ? 1 : 0.4;
+    const cosAlpha = state.useSin ? 0.4 : 1;
+
+    // Vertical (sin) leg: from foot (gp.x, cy) to gondola (gp.x, gp.y)
+    ctx.beginPath(); ctx.moveTo(gp.x, cy); ctx.lineTo(gp.x, gp.y);
+    ctx.strokeStyle = C.sin; ctx.lineWidth = sinLineW; ctx.globalAlpha = sinAlpha;
+    ctx.setLineDash(state.useSin ? [] : [5, 4]); ctx.stroke();
+    ctx.setLineDash([]); ctx.globalAlpha = 1;
+
+    // Horizontal (cos) leg: from center (cx, cy) to foot (gp.x, cy)
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(gp.x, cy);
+    ctx.strokeStyle = C.cos; ctx.lineWidth = cosLineW; ctx.globalAlpha = cosAlpha;
+    ctx.setLineDash(state.useSin ? [5, 4] : []); ctx.stroke();
+    ctx.setLineDash([]); ctx.globalAlpha = 1;
+  }
+
+  // ── Highlighted spoke for selected gondola ──
+  {
+    const ip = mathAngleToCanvas(cx, cy, R * 0.12, selMathA);
+    ctx.beginPath(); ctx.moveTo(ip.x, ip.y); ctx.lineTo(gp.x, gp.y);
+    ctx.strokeStyle = C.spokeSelected; ctx.lineWidth = Math.max(2.5, R * 0.028); ctx.stroke();
+  }
+
+  // ── Angle / arc annotation ──
+  drawAngleAnnotation(ctx, cx, cy, R, angleDeg);
+
+  // ── Gondolas ──
+  for (let i = 0; i < NUM_GONDOLAS; i++) {
+    if (state.hideOthers && i !== 0) continue;
+    const a = gondolaMathAngleRad(i);
+    const { x, y } = mathAngleToCanvas(cx, cy, R, a);
+    drawGondola(ctx, x, y, R, i === 0);
+  }
+
+  // ── Center hub ──
+  ctx.beginPath(); ctx.arc(cx, cy, Math.max(5, R * 0.07), 0, Math.PI * 2);
+  ctx.fillStyle = C.frame; ctx.fill();
+  ctx.beginPath(); ctx.arc(cx, cy, Math.max(3, R * 0.04), 0, Math.PI * 2);
+  ctx.fillStyle = '#94a3b8'; ctx.fill();
+}
+
+function drawGondola(ctx, x, y, R, selected) {
+  const s = Math.max(5, R * 0.09);
+  ctx.fillStyle = selected ? C.gondolaSel : C.gondola;
+  ctx.strokeStyle = selected ? '#9a3412' : '#92400e';
+  ctx.lineWidth = selected ? 2.5 : 1.5;
+  ctx.beginPath();
+  ctx.roundRect(x - s, y - s * 0.7, s * 2, s * 1.4, s * 0.3);
+  ctx.fill(); ctx.stroke();
+  ctx.fillStyle = selected ? 'rgba(255,200,180,0.7)' : 'rgba(255,240,200,0.7)';
+  ctx.beginPath(); ctx.arc(x, y, s * 0.35, 0, Math.PI * 2); ctx.fill();
+}
+
+// ─── Draw Abstract Circle ─────────────────────────────────────────────────────
+function drawAbstractCircle(ctx, w, h) {
+  const { x: cx, y: cy } = getWheelCenter(w, h);
+  const R = getWheelPixelR(h);
+  const angleDeg = state.angle % 360;
+  const selMathA = gondolaMathAngleRad(0);
+  const { x: px, y: py } = mathAngleToCanvas(cx, cy, R, selMathA);
+
+  ctx.fillStyle = '#f8fafc'; ctx.fillRect(0, 0, w, h);
+
+  // Axes
+  drawCoordAxes(ctx, cx, cy, R);
+
+  // Circle
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2);
+  ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 2; ctx.stroke();
+
+  // Angle / arc annotation
+  drawAngleAnnotation(ctx, cx, cy, R, angleDeg);
+
+  // Triangle
+  if (state.showTriangle) {
+    ctx.beginPath();
+    ctx.moveTo(cx, cy); ctx.lineTo(px, cy); ctx.lineTo(px, py);
+    ctx.closePath();
+    ctx.fillStyle = C.triFill; ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(cx, cy); ctx.lineTo(px, cy); ctx.lineTo(px, py);
+    ctx.closePath();
+    ctx.strokeStyle = C.triStroke; ctx.lineWidth = 1.2; ctx.stroke();
+
+    // Right-angle marker
+    const sq = Math.max(5, R * 0.065);
+    const xDir = (px >= cx) ? -1 : 1;
+    const yDir = (py <= cy) ? 1 : -1;
+    ctx.beginPath();
+    ctx.moveTo(px + xDir * sq, cy);
+    ctx.lineTo(px + xDir * sq, cy + yDir * sq);
+    ctx.lineTo(px, cy + yDir * sq);
+    ctx.strokeStyle = C.triStroke; ctx.lineWidth = 1.4; ctx.stroke();
+  }
+
+  // Radius (hypotenuse)
+  ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(px, py);
+  ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 2.2; ctx.stroke();
+
+  // Colored legs – active one bold, inactive faint
+  const sinLineW = state.useSin ? Math.max(3, R * 0.038) : 1.8;
+  const cosLineW = state.useSin ? 1.8 : Math.max(3, R * 0.038);
+
+  // Vertical (sin) leg
+  ctx.beginPath(); ctx.moveTo(px, cy); ctx.lineTo(px, py);
+  ctx.strokeStyle = C.sin; ctx.lineWidth = sinLineW;
+  ctx.globalAlpha = state.useSin ? 1 : 0.35;
+  ctx.setLineDash(state.useSin ? [] : [4, 4]); ctx.stroke();
+  ctx.setLineDash([]); ctx.globalAlpha = 1;
+
+  // Horizontal (cos) leg
+  ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(px, cy);
+  ctx.strokeStyle = C.cos; ctx.lineWidth = cosLineW;
+  ctx.globalAlpha = state.useSin ? 0.35 : 1;
+  ctx.setLineDash(state.useSin ? [4, 4] : []); ctx.stroke();
+  ctx.setLineDash([]); ctx.globalAlpha = 1;
+
+  // Helper lines to axes (dashed green)
+  if (state.showHelper) {
+    ctx.strokeStyle = C.helper; ctx.lineWidth = 1.7;
+    ctx.setLineDash([5, 4]);
+    if (state.useSin) {
+      // horizontal line from point to y-axis
+      ctx.beginPath(); ctx.moveTo(cx, py); ctx.lineTo(px, py); ctx.stroke();
+    } else {
+      // vertical line from point to x-axis
+      ctx.beginPath(); ctx.moveTo(px, cy); ctx.lineTo(px, py); ctx.stroke();
+    }
+    ctx.setLineDash([]);
+  }
+
+  // Gondola point
+  ctx.beginPath(); ctx.arc(px, py, Math.max(6, R * 0.075), 0, Math.PI * 2);
+  ctx.fillStyle = C.gondolaSel; ctx.fill();
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+}
+
+// ─── Draw Graph ───────────────────────────────────────────────────────────────
+function drawGraph(ctx, w, h) {
+  ctx.fillStyle = '#f8fafc'; ctx.fillRect(0, 0, w, h);
+
+  const margin = { left: 50, right: 20, top: 22, bottom: 36 };
+  const gw = w - margin.left - margin.right;
+  const gh = h - margin.top - margin.bottom;
+  const ox = margin.left;
+  const oy = margin.top + gh / 2;  // y=0 line
+
+  const R = state.radius;
+  const xMax = 540; // 1.5 periods in degrees
+  const yRange = 2; // fixed: always show -2 to +2
+
+  function toScreenX(deg) { return ox + (deg / xMax) * gw; }
+  function toScreenY(val) { return oy - (val / yRange) * (gh / 2); }
+
+  // Grid – fixed lines at -2,-1,0,1,2 and current ±R lines
+  ctx.strokeStyle = C.grid; ctx.lineWidth = 1; ctx.setLineDash([3, 3]);
+  [-2, -1, 1, 2].forEach(v => {
+    ctx.beginPath(); ctx.moveTo(ox, toScreenY(v)); ctx.lineTo(ox + gw, toScreenY(v)); ctx.stroke();
+  });
+  // Extra dashed lines at ±R if R is not already 1 or 2
+  if (Math.abs(R - 1) > 0.05 && Math.abs(R - 2) > 0.05) {
+    ctx.setLineDash([6, 3]);
+    ctx.strokeStyle = state.useSin ? C.sin : C.cos;
+    ctx.globalAlpha = 0.35;
+    [R, -R].forEach(v => {
+      ctx.beginPath(); ctx.moveTo(ox, toScreenY(v)); ctx.lineTo(ox + gw, toScreenY(v)); ctx.stroke();
+    });
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = C.grid;
+  }
+  ctx.setLineDash([]);
+  for (let d = 0; d <= xMax; d += 90) {
+    ctx.beginPath(); ctx.moveTo(toScreenX(d), margin.top); ctx.lineTo(toScreenX(d), margin.top + gh); ctx.stroke();
+  }
+  ctx.setLineDash([]);
+
+  // Axes
+  ctx.strokeStyle = C.axis; ctx.lineWidth = 1.8;
+  ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(ox + gw + 8, oy); ctx.stroke();
+  arrowHead(ctx, ox + gw + 8, oy, 0);
+  ctx.beginPath(); ctx.moveTo(ox, margin.top - 6); ctx.lineTo(ox, margin.top + gh); ctx.stroke();
+  arrowHead(ctx, ox, margin.top - 6, -Math.PI / 2);
+
+  // Y-axis labels – always -2,-1,0,1,2
+  ctx.font = '10px JetBrains Mono';
+  ctx.fillStyle = C.axis; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  [-2, -1, 1, 2].forEach(v => {
+    ctx.fillStyle = C.axis;
+    ctx.fillText(v.toFixed(1), ox - 5, toScreenY(v));
+    ctx.beginPath(); ctx.moveTo(ox - 3, toScreenY(v)); ctx.lineTo(ox + 3, toScreenY(v));
+    ctx.strokeStyle = C.axis; ctx.lineWidth = 1; ctx.stroke();
+  });
+  ctx.fillStyle = C.axis;
+  ctx.fillText('0', ox - 5, oy);
+  // Extra label at ±R when R ≠ 1 and R ≠ 2
+  if (Math.abs(R - 1) > 0.05 && Math.abs(R - 2) > 0.05) {
+    const rCol = state.useSin ? C.sin : C.cos;
+    ctx.font = 'bold 10px JetBrains Mono';
+    [R, -R].forEach(v => {
+      ctx.fillStyle = rCol;
+      ctx.fillText((v > 0 ? '+' : '') + v.toFixed(1), ox - 5, toScreenY(v));
+      ctx.beginPath(); ctx.moveTo(ox - 3, toScreenY(v)); ctx.lineTo(ox + 3, toScreenY(v));
+      ctx.strokeStyle = rCol; ctx.lineWidth = 1.5; ctx.stroke();
+    });
+    ctx.font = '10px JetBrains Mono';
+  }
+
+  // X-axis labels
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillStyle = C.axis;
+  [90, 180, 270, 360, 450, 540].forEach(deg => {
+    const sx = toScreenX(deg);
+    ctx.beginPath(); ctx.moveTo(sx, oy - 3); ctx.lineTo(sx, oy + 3);
+    ctx.strokeStyle = C.axis; ctx.lineWidth = 1; ctx.stroke();
+    const lbl = state.useDegrees ? deg + '°' : radLabel(deg * Math.PI / 180);
+    ctx.fillText(lbl, sx, oy + 5);
+  });
+
+  // Axis titles
+  ctx.font = 'bold 11px Nunito'; ctx.fillStyle = '#64748b';
+  ctx.textAlign = 'right'; ctx.textBaseline = 'top';
+  ctx.fillText(state.useDegrees ? 'α (in °)' : 'α (in rad)', ox + gw, oy + 16);
+  ctx.save();
+  ctx.translate(13, margin.top + gh / 2); ctx.rotate(-Math.PI / 2);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(state.useSin ? (R === 1 ? 'sin(α)' : 'r·sin(α)') : (R === 1 ? 'cos(α)' : 'r·cos(α)'), 0, 0);
+  ctx.restore();
+
+  // Trace
+  if (state.showTrace && state.tracePoints.length > 1) {
+    ctx.beginPath();
+    ctx.strokeStyle = state.useSin ? C.sin : C.cos;
+    ctx.lineWidth = 2; ctx.globalAlpha = 0.75;
+    state.tracePoints.forEach((pt, i) => {
+      const sx = toScreenX(pt.angle);
+      const sy = toScreenY(pt.val);
+      i === 0 ? ctx.moveTo(sx, sy) : ctx.lineTo(sx, sy);
+    });
+    ctx.stroke(); ctx.globalAlpha = 1;
+  }
+
+  // Current values
+  const curAngle = state.angle % xMax;
+  const val = getCurrentVal();
+  const sx = toScreenX(curAngle);
+  const sy = toScreenY(val);
+
+  // Helper lines (dashed green)
+  if (state.showHelper) {
+    ctx.strokeStyle = C.helper; ctx.lineWidth = 1.8; ctx.setLineDash([5, 4]);
+    ctx.beginPath(); ctx.moveTo(sx, oy); ctx.lineTo(sx, sy); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(ox, sy); ctx.lineTo(sx, sy); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // Current point
+  ctx.beginPath(); ctx.arc(sx, sy, 6, 0, Math.PI * 2);
+  ctx.fillStyle = state.useSin ? C.sin : C.cos; ctx.fill();
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+
+  // Value label
+  ctx.font = 'bold 11px JetBrains Mono';
+  ctx.fillStyle = state.useSin ? C.sin : C.cos;
+  const labelRight = sx < ox + gw * 0.72;
+  ctx.textAlign = labelRight ? 'left' : 'right';
+  ctx.textBaseline = val > 0 ? 'bottom' : 'top';
+  const fn = state.useSin ? 'sin' : 'cos';
+  ctx.fillText(`${fn}(${Math.round(state.angle % 360)}°)=${val.toFixed(3)}`,
+    sx + (labelRight ? 8 : -8), sy + (val > 0 ? -4 : 4));
+}
+
+// ─── Utilities ────────────────────────────────────────────────────────────────
+function radLabel(rad) {
+  const pi = Math.PI;
+  const fracs = [
+    [0,'0'],[pi/6,'π/6'],[pi/4,'π/4'],[pi/3,'π/3'],[pi/2,'π/2'],
+    [2*pi/3,'2π/3'],[3*pi/4,'3π/4'],[5*pi/6,'5π/6'],[pi,'π'],
+    [7*pi/6,'7π/6'],[5*pi/4,'5π/4'],[4*pi/3,'4π/3'],[3*pi/2,'3π/2'],
+    [5*pi/3,'5π/3'],[7*pi/4,'7π/4'],[11*pi/6,'11π/6'],[2*pi,'2π'],
+    [5*pi/2,'5π/2'],[3*pi,'3π'],
+  ];
+  for (const [v, l] of fracs) if (Math.abs(rad - v) < 0.04) return l;
+  return rad.toFixed(2);
+}
+
+function getCurrentVal() {
+  const a = state.angle * Math.PI / 180;
+  return state.useSin ? state.radius * Math.sin(a) : state.radius * Math.cos(a);
+}
+
+// ─── Main draw ────────────────────────────────────────────────────────────────
+function draw() {
+  const w = wCanvas.width, h = wCanvas.height;
+  wCtx.clearRect(0, 0, w, h);
+  if (state.showAbstract) {
+    drawAbstractCircle(wCtx, w, h);
+  } else {
+    drawFerrisWheel(wCtx, w, h);
+  }
+  gCtx.clearRect(0, 0, gCanvas.width, gCanvas.height);
+  drawGraph(gCtx, gCanvas.width, gCanvas.height);
+  updateInfoBar();
+}
+
+function updateInfoBar() {
+  const a = state.angle;
+  const rad = (a % 360) * Math.PI / 180;
+  const val = getCurrentVal();
+  document.getElementById('infoAngle').textContent = `α = ${(a % 360).toFixed(1)}°`;
+  document.getElementById('infoRad').textContent = `= ${rad.toFixed(3)} rad`;
+  const fn = state.useSin ? 'sin' : 'cos';
+  document.getElementById('infoVal').textContent = `${fn}(α) = ${val.toFixed(4)}`;
+}
+
+// ─── Animation loop ───────────────────────────────────────────────────────────
+function loop(ts) {
+  if (state.playing) {
+    if (state.lastTime !== null) {
+      const dt = ts - state.lastTime;
+      // 36°/s at speed 1 → full rotation in 10s
+      state.angle += 36 * state.speed * dt / 1000;
+      if (state.angle >= 540) state.angle -= 540;
+      if (state.showTrace) {
+        state.tracePoints.push({ angle: state.angle % 540, val: getCurrentVal() });
+        if (state.tracePoints.length > 3000) state.tracePoints.shift();
+      }
+    }
+    state.lastTime = ts;
+  } else {
+    state.lastTime = null;
+  }
+  draw();
+  requestAnimationFrame(loop);
+}
+
+// ─── Controls ─────────────────────────────────────────────────────────────────
+function setActive(id, on, cls = 'active') {
+  document.getElementById(id).classList.toggle(cls, on);
+}
+
+document.getElementById('btnPlay').addEventListener('click', () => {
+  state.playing = !state.playing;
+  document.getElementById('btnPlay').textContent = state.playing ? '⏸ Pause' : '▶ Play';
+  setActive('btnPlay', state.playing);
+});
+
+document.getElementById('btnReset').addEventListener('click', () => {
+  state.angle = 0; state.tracePoints = []; draw();
+});
+
+document.getElementById('btnSin').addEventListener('click', () => {
+  state.useSin = true; state.tracePoints = [];
+  document.getElementById('btnSin').className = 'btn sin-active';
+  document.getElementById('btnCos').className = 'btn';
+});
+
+document.getElementById('btnCos').addEventListener('click', () => {
+  state.useSin = false; state.tracePoints = [];
+  document.getElementById('btnSin').className = 'btn';
+  document.getElementById('btnCos').className = 'btn cos-active';
+});
+
+document.getElementById('btnDeg').addEventListener('click', () => {
+  state.useDegrees = true; setActive('btnDeg', true); setActive('btnRad', false);
+});
+document.getElementById('btnRad').addEventListener('click', () => {
+  state.useDegrees = false; setActive('btnDeg', false); setActive('btnRad', true);
+});
+
+document.getElementById('btnAbstract').addEventListener('click', () => {
+  state.showAbstract = !state.showAbstract;
+  setActive('btnAbstract', state.showAbstract, 'green-active');
+  document.getElementById('left-title').textContent = state.showAbstract ? 'Abstrakte Darstellung' : 'Riesenrad';
+});
+
+document.getElementById('btnHideOthers').addEventListener('click', () => {
+  state.hideOthers = !state.hideOthers;
+  setActive('btnHideOthers', state.hideOthers, 'green-active');
+  document.getElementById('btnHideOthers').textContent = state.hideOthers ? 'Alle Gondeln' : 'Andere Gondeln';
+});
+
+document.getElementById('btnTrace').addEventListener('click', () => {
+  state.showTrace = !state.showTrace;
+  if (!state.showTrace) state.tracePoints = [];
+  setActive('btnTrace', state.showTrace, 'green-active');
+  document.getElementById('btnTrace').textContent = state.showTrace ? 'Spur ausblenden' : 'Spur anzeigen';
+});
+
+document.getElementById('btnTriangle').addEventListener('click', () => {
+  state.showTriangle = !state.showTriangle;
+  setActive('btnTriangle', state.showTriangle, 'green-active');
+});
+
+document.getElementById('btnHelper').addEventListener('click', () => {
+  state.showHelper = !state.showHelper;
+  setActive('btnHelper', state.showHelper, 'green-active');
+  document.getElementById('btnHelper').textContent = state.showHelper ? 'Hilfslinie aus' : 'Hilfslinie an';
+});
+
+document.getElementById('speedSlider').addEventListener('input', e => {
+  state.speed = parseFloat(e.target.value);
+  document.getElementById('speedVal').textContent = state.speed.toFixed(1) + '×';
+});
+
+document.getElementById('radiusSlider').addEventListener('input', e => {
+  state.radius = parseFloat(e.target.value);
+  state.tracePoints = [];
+  document.getElementById('radiusVal').textContent = 'r = ' + state.radius.toFixed(1);
+});
+
+// Initial states
+setActive('btnPlay', true);
+setActive('btnDeg', true);
+setActive('btnHelper', true, 'green-active');
+document.getElementById('btnSin').className = 'btn sin-active';
+
+resizeCanvases();
+window.addEventListener('resize', resizeCanvases);
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
