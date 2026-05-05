@@ -124,7 +124,6 @@
     <button class="btn" id="btnAbstract">Abstrahieren</button>
     <button class="btn" id="btnHideOthers">Andere Gondeln</button>
     <button class="btn" id="btnTrace">Spur anzeigen</button>
-    <button class="btn" id="btnTriangle">Dreieck</button>
     <button class="btn green-active" id="btnHelper">Hilfslinie aus</button>
   </div>
   <div class="divider"></div>
@@ -161,7 +160,6 @@ const state = {
   showAbstract: false,
   hideOthers: false,
   showTrace: false,
-  showTriangle: false,
   showHelper: true,
   useSin: true,
   tracePoints: [],
@@ -373,32 +371,9 @@ function drawFerrisWheel(ctx, w, h) {
     ctx.strokeStyle = C.spoke; ctx.lineWidth = Math.max(1, R * 0.018); ctx.stroke();
   }
 
-  // ── Triangle fill (drawn before legs so legs are on top) ──
-  if (state.showTriangle) {
-    ctx.beginPath();
-    ctx.moveTo(cx, cy); ctx.lineTo(gp.x, cy); ctx.lineTo(gp.x, gp.y);
-    ctx.closePath();
-    ctx.fillStyle = C.triFill; ctx.fill();
-    // Outline of triangle (legs colored separately below)
-    ctx.beginPath();
-    ctx.moveTo(cx, cy); ctx.lineTo(gp.x, cy); ctx.lineTo(gp.x, gp.y);
-    ctx.closePath();
-    ctx.strokeStyle = C.triStroke; ctx.lineWidth = 1.2; ctx.stroke();
-
-    // Right-angle marker at (gp.x, cy)
-    const sq = Math.max(5, R * 0.065);
-    const xDir = (gp.x >= cx) ? -1 : 1;
-    const yDir = (gp.y <= cy) ? 1 : -1; // going upward or downward?
-    ctx.beginPath();
-    ctx.moveTo(gp.x + xDir * sq, cy);
-    ctx.lineTo(gp.x + xDir * sq, cy + yDir * sq);
-    ctx.lineTo(gp.x, cy + yDir * sq);
-    ctx.strokeStyle = C.triStroke; ctx.lineWidth = 1.4; ctx.stroke();
-  }
-
   // ── Colored legs ──
   // sin = vertical leg (orange-red), cos = horizontal leg (blue)
-  const showLegs = state.showTriangle || state.showHelper;
+  const showLegs = state.showHelper;
   if (showLegs) {
     const sinLineW = state.useSin ? Math.max(3, R * 0.038) : 2;
     const cosLineW = state.useSin ? 2 : Math.max(3, R * 0.038);
@@ -474,28 +449,6 @@ function drawAbstractCircle(ctx, w, h) {
 
   // Angle / arc annotation
   drawAngleAnnotation(ctx, cx, cy, R, angleDeg);
-
-  // Triangle
-  if (state.showTriangle) {
-    ctx.beginPath();
-    ctx.moveTo(cx, cy); ctx.lineTo(px, cy); ctx.lineTo(px, py);
-    ctx.closePath();
-    ctx.fillStyle = C.triFill; ctx.fill();
-    ctx.beginPath();
-    ctx.moveTo(cx, cy); ctx.lineTo(px, cy); ctx.lineTo(px, py);
-    ctx.closePath();
-    ctx.strokeStyle = C.triStroke; ctx.lineWidth = 1.2; ctx.stroke();
-
-    // Right-angle marker
-    const sq = Math.max(5, R * 0.065);
-    const xDir = (px >= cx) ? -1 : 1;
-    const yDir = (py <= cy) ? 1 : -1;
-    ctx.beginPath();
-    ctx.moveTo(px + xDir * sq, cy);
-    ctx.lineTo(px + xDir * sq, cy + yDir * sq);
-    ctx.lineTo(px, cy + yDir * sq);
-    ctx.strokeStyle = C.triStroke; ctx.lineWidth = 1.4; ctx.stroke();
-  }
 
   // Radius (hypotenuse)
   ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(px, py);
@@ -789,10 +742,7 @@ document.getElementById('btnTrace').addEventListener('click', () => {
   document.getElementById('btnTrace').textContent = state.showTrace ? 'Spur ausblenden' : 'Spur anzeigen';
 });
 
-document.getElementById('btnTriangle').addEventListener('click', () => {
-  state.showTriangle = !state.showTriangle;
-  setActive('btnTriangle', state.showTriangle, 'green-active');
-});
+
 
 document.getElementById('btnHelper').addEventListener('click', () => {
   state.showHelper = !state.showHelper;
